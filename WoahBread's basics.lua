@@ -2,6 +2,7 @@
 local player = game.Players.LocalPlayer
 local userInputService = game:GetService("UserInputService")
 local runService = game:GetService("RunService")
+local tweenService = game:GetService("TweenService") -- For smooth opening of the dropdown
 
 -- GUI Setup
 local screenGui = Instance.new("ScreenGui")
@@ -12,7 +13,7 @@ screenGui.ResetOnSpawn = false
 local mainFrame = Instance.new("Frame")
 mainFrame.Parent = screenGui
 mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150) -- Centered on screen
-mainFrame.Size = UDim2.new(0, 400, 0, 400)
+mainFrame.Size = UDim2.new(0, 500, 0, 500)  -- Increased size for more space
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BackgroundTransparency = 0.3
 
@@ -36,7 +37,7 @@ titleLabel.TextYAlignment = Enum.TextYAlignment.Center
 local function updateTitleColor()
     local hue = tick() % 5 / 5 -- Cycle through hues
     titleLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
-    titleLabel.Text = "WoahBread's Basics"
+    titleLabel.Text = "WoahBread's LUA"
 end
 runService.RenderStepped:Connect(updateTitleColor)
 
@@ -81,16 +82,12 @@ noclipButton.TextSize = 20
 noclipButton.MouseButton1Click:Connect(function()
     noclipEnabled = not noclipEnabled
     noclipButton.Text = noclipEnabled and "Noclip: ON" or "Noclip: OFF"
-end)
-
-runService.Stepped:Connect(function()
-    if noclipEnabled then
-        local character = player.Character
-        if character then
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") and part.CanCollide then
-                    part.CanCollide = false
-                end
+    
+    local character = player.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = not noclipEnabled
             end
         end
     end
@@ -101,7 +98,7 @@ local walkSpeed = 16
 local walkSpeedButton = Instance.new("TextButton")
 walkSpeedButton.Parent = mainFrame
 walkSpeedButton.Size = UDim2.new(0, 150, 0, 50)
-walkSpeedButton.Position = UDim2.new(0.5, -75, 0, 200)
+walkSpeedButton.Position = UDim2.new(0.5, -75, 0, 150)
 walkSpeedButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 walkSpeedButton.Text = "WalkSpeed: 16"
 walkSpeedButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -111,7 +108,7 @@ walkSpeedButton.TextSize = 20
 local walkSpeedSlider = Instance.new("Frame")
 walkSpeedSlider.Parent = mainFrame
 walkSpeedSlider.Size = UDim2.new(0, 200, 0, 10)
-walkSpeedSlider.Position = UDim2.new(0.5, -100, 0, 270)
+walkSpeedSlider.Position = UDim2.new(0.5, -100, 0, 220)
 walkSpeedSlider.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 
 local walkSpeedSliderHandle = Instance.new("Frame")
@@ -135,57 +132,109 @@ userInputService.InputChanged:Connect(function(input)
     if isSliderDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
         local position = math.clamp(input.Position.X - walkSpeedSlider.AbsolutePosition.X, 0, walkSpeedSlider.AbsoluteSize.X)
         walkSpeedSliderHandle.Position = UDim2.new(0, position, 0, 0)
-        walkSpeed = math.floor(position / walkSpeedSlider.AbsoluteSize.X * 84) + 16 -- Speed range: 16-100
+        walkSpeed = math.floor(position / walkSpeedSlider.AbsoluteSize.X * 50) + 16 -- Speed range: 16-66
         walkSpeedButton.Text = "WalkSpeed: " .. walkSpeed
         player.Character.Humanoid.WalkSpeed = walkSpeed
     end
 end)
 
--- Color Customization Feature
-local colorWheelVisible = false
+-- Teleport Feature
+local teleportButton = Instance.new("TextButton")
+teleportButton.Parent = mainFrame
+teleportButton.Size = UDim2.new(0, 150, 0, 50)
+teleportButton.Position = UDim2.new(0.5, -75, 0, 300) -- Positioned at the bottom of the frame
+teleportButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+teleportButton.Text = "Select Player"
+teleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+teleportButton.Font = Enum.Font.SourceSans
+teleportButton.TextSize = 20
 
-local dropdownButton = Instance.new("TextButton")
-dropdownButton.Parent = mainFrame
-dropdownButton.Size = UDim2.new(0, 150, 0, 50)
-dropdownButton.Position = UDim2.new(0.5, -75, 0, 130)
-dropdownButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-dropdownButton.Text = "Customize Colors"
-dropdownButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-dropdownButton.Font = Enum.Font.SourceSans
-dropdownButton.TextSize = 20
+-- Teleport Action Button (Separate)
+local teleportActionButton = Instance.new("TextButton")
+teleportActionButton.Parent = mainFrame
+teleportActionButton.Size = UDim2.new(0, 150, 0, 50)
+teleportActionButton.Position = UDim2.new(0.5, -75, 0, 360) -- Positioned below the "Select Player" button
+teleportActionButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+teleportActionButton.Text = "Teleport"
+teleportActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+teleportActionButton.Font = Enum.Font.SourceSans
+teleportActionButton.TextSize = 20
+teleportActionButton.Visible = false -- Initially hidden
 
-local colorWheelFrame = Instance.new("Frame")
-colorWheelFrame.Parent = mainFrame
-colorWheelFrame.Size = UDim2.new(0, 200, 0, 200)
-colorWheelFrame.Position = UDim2.new(0.5, -100, 0, 190)
-colorWheelFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-colorWheelFrame.Visible = false
+-- Dropdown for player selection (separate from the teleport button)
+local playerDropdown = Instance.new("Frame")
+playerDropdown.Parent = mainFrame
+playerDropdown.Size = UDim2.new(0, 150, 0, 200)
+playerDropdown.Position = UDim2.new(0.5, 80, 0, 300) -- Positioned to the right of the "Select Player" button
+playerDropdown.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+playerDropdown.Visible = false
 
-local colorWheel = Instance.new("ImageButton")
-colorWheel.Parent = colorWheelFrame
-colorWheel.Size = UDim2.new(1, 0, 1, 0)
-colorWheel.Image = "rbxassetid://698052001"
-colorWheel.BackgroundTransparency = 1
+local playerList = Instance.new("UIListLayout")
+playerList.Parent = playerDropdown
+playerList.SortOrder = Enum.SortOrder.LayoutOrder
+playerList.FillDirection = Enum.FillDirection.Vertical
 
-dropdownButton.MouseButton1Click:Connect(function()
-    colorWheelVisible = not colorWheelVisible
-    colorWheelFrame.Visible = colorWheelVisible
+-- Create buttons for each player to teleport to
+local selectedPlayer = nil
 
-    -- Change button text based on visibility
-    dropdownButton.Text = colorWheelVisible and "Hide Colors" or "Customize Colors"
+local function updatePlayerList()
+    -- Clear existing player buttons
+    for _, child in pairs(playerDropdown:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    -- Add player buttons for each player
+    for _, targetPlayer in pairs(game.Players:GetPlayers()) do
+        if targetPlayer ~= player then
+            local playerButton = Instance.new("TextButton")
+            playerButton.Size = UDim2.new(1, 0, 0, 40)
+            playerButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            playerButton.Text = targetPlayer.Name
+            playerButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            playerButton.Font = Enum.Font.SourceSans
+            playerButton.TextSize = 18
+            playerButton.Parent = playerDropdown
+            
+            playerButton.MouseButton1Click:Connect(function()
+                selectedPlayer = targetPlayer
+                teleportButton.Text = "Teleport to " .. selectedPlayer.Name
+                -- Hide dropdown and show the teleport action button
+                local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+                local goal = {Size = UDim2.new(0, 0, 0, 200)}
+                local tween = tweenService:Create(playerDropdown, tweenInfo, goal)
+                tween:Play()
+                tween.Completed:Connect(function()
+                    playerDropdown.Visible = false
+                    teleportActionButton.Visible = true
+                end)
+            end)
+        end
+    end
+end
+
+teleportButton.MouseButton1Click:Connect(function()
+    -- Show the dropdown with smooth transition
+    playerDropdown.Visible = true
+    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+    local goal = {Size = UDim2.new(0, 150, 0, 200)}
+    local tween = tweenService:Create(playerDropdown, tweenInfo, goal)
+    tween:Play()
+    updatePlayerList()
 end)
 
-colorWheel.MouseButton1Click:Connect(function(input)
-    local mousePos = userInputService:GetMouseLocation()
-    local relPos = Vector2.new(mousePos.X - colorWheel.AbsolutePosition.X, mousePos.Y - colorWheel.AbsolutePosition.Y)
-    local x = math.clamp(relPos.X / colorWheel.AbsoluteSize.X, 0, 1)
-    local y = math.clamp(relPos.Y / colorWheel.AbsoluteSize.Y, 0, 1)
-    local color = Color3.fromHSV(x, 1 - y, 1)
-    mainFrame.BackgroundColor3 = color
-    dropdownButton.BackgroundColor3 = color
-    noclipButton.BackgroundColor3 = color
-    walkSpeedButton.BackgroundColor3 = color
-
+teleportActionButton.MouseButton1Click:Connect(function()
+    if selectedPlayer then
+        -- Teleport to the selected player
+        player.Character:SetPrimaryPartCFrame(selectedPlayer.Character.HumanoidRootPart.CFrame)
+        
+        -- Reset dropdown and teleport button after teleporting
+        playerDropdown.Visible = false
+        teleportActionButton.Visible = false
+        teleportButton.Text = "Select Player" -- Revert teleport button text
+        selectedPlayer = nil -- Clear selected player
+    end
 end)
 
 -- Toggle GUI visibility with Right Shift
@@ -195,4 +244,3 @@ userInputService.InputBegan:Connect(function(input)
         screenGui.Enabled = not screenGui.Enabled
     end
 end)
-
