@@ -67,7 +67,7 @@ userInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Noclip Feature
+-- Noclip Feature (Stay active after being toggled)
 local noclipEnabled = false
 local noclipButton = Instance.new("TextButton")
 noclipButton.Parent = mainFrame
@@ -215,13 +215,25 @@ local function updatePlayerList()
 end
 
 teleportButton.MouseButton1Click:Connect(function()
-    -- Show the dropdown with smooth transition
-    playerDropdown.Visible = true
-    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-    local goal = {Size = UDim2.new(0, 150, 0, 200)}
-    local tween = tweenService:Create(playerDropdown, tweenInfo, goal)
-    tween:Play()
-    updatePlayerList()
+    -- Toggle the dropdown visibility
+    if playerDropdown.Visible then
+        -- Close the dropdown
+        local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+        local goal = {Size = UDim2.new(0, 0, 0, 200)}
+        local tween = tweenService:Create(playerDropdown, tweenInfo, goal)
+        tween:Play()
+        tween.Completed:Connect(function()
+            playerDropdown.Visible = false
+        end)
+    else
+        -- Open the dropdown and update the player list
+        playerDropdown.Visible = true
+        local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+        local goal = {Size = UDim2.new(0, 150, 0, 200)}
+        local tween = tweenService:Create(playerDropdown, tweenInfo, goal)
+        tween:Play()
+        updatePlayerList()
+    end
 end)
 
 teleportActionButton.MouseButton1Click:Connect(function()
