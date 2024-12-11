@@ -37,7 +37,7 @@ titleLabel.TextYAlignment = Enum.TextYAlignment.Center
 local function updateTitleColor()
     local hue = tick() % 5 / 5 -- Cycle through hues
     titleLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
-    titleLabel.Text = "WoahBread's Basics"
+    titleLabel.Text = "WoahBread's Basics V1.1"
 end
 runService.RenderStepped:Connect(updateTitleColor)
 
